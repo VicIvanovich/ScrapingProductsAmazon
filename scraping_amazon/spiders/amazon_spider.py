@@ -11,7 +11,9 @@ from selenium.webdriver.chrome.options import Options
 from scraping_amazon.blob_utils import upload_file_to_blob
 from scrapy.crawler import CrawlerProcess
 from urllib.parse import urlparse
-
+from ..payload import GetDomain
+import re
+from math import ceil
 # Desenvolvido por Victor Ivanovich Bormotoff e Pedro Henrique Teixeira
 
 # Projeto para realização de consultas de preço no site da amazon
@@ -24,20 +26,22 @@ def get_domain(url):
     domain = parsed_url.netloc
     if domain.startswith('www.'):
         domain = domain[4:]
-
+    
+    currency = "BRL" if '.br' in domain.lower() else "USD"
     domain = domain.split('.')[0]
+    
 
-    return domain
+    return domain,currency
 
 
 class AmazonSpider(scrapy.Spider):
     name = "amazon"
-    allowed_domains = ["amazon.com", "mercadolivre.com.br", "kabum.com.br"]
+    allowed_domains = ["amazon.com","amazon.com.br", "mercadolivre.com", "kabum.com.br"]
     start_urls = [
 
         # Inserir URLs para realizar a consulta!!
 
-        "https://produto.mercadolivre.com.br/MLB-3451724732-coleco-completa-25-cards-comuns-pokemon-mc-donalds-2021-_JM"
+        "https://www.kabum.com.br/produto/385191/console-nintendo-switch-joy-con-neon-mario-kart-8-deluxe-3-meses-de-assinatura-nintendo-switch-online-azul-e-vermelho-hbdskabl2?awc=17729_1737135620_6fbeefe3ace3c0c9e0fda1b4f4fb4062&sn=1&utm_source=AWIN&utm_medium=AFILIADOS&utm_campaign=fevereiro24&utm_content=i8mHpW6AWECTVWXKusSESg:0001010111111111001110&utm_term=402367"
 
     ]
 
@@ -61,37 +65,49 @@ class AmazonSpider(scrapy.Spider):
 
         response = HtmlResponse(url=response.url, body=rendered_html, encoding='utf-8')
 
-        domain = get_domain(response.url)
+        domain,currency = get_domain(response.url)
 
-        print(domain)
+        jsonDom = GetDomain(domain)
 
-        asin = response.url.split("/dp/")[1].split("?")[0].split("/")[0]
+        #print(jsonDom)
 
-        title = response.xpath('//span[@id="productTitle"]/text()').get()
+
+        asin = response.url.split(jsonDom["asin_xpath"])[1].split("?")[0].split("/")[0]
+
+        title = response.xpath(jsonDom["title_xpath"]).get()
         if title:
             title = title.strip()
 
-        price_whole = response.xpath('//span[contains(@class, "a-price-whole")]/text()').get().strip() \
-            if response.xpath('//span[contains(@class, "a-price-whole")]/text()').get() \
+        price_whole = response.xpath(jsonDom["price_xpath"]).get().strip() \
+            if response.xpath(jsonDom["price_xpath"]).get() \
             else "Preço não encontrado"
 
-        price_fraction = response.xpath('//span[contains(@class, "a-price-fraction")]/text()').get().strip() \
-            if response.xpath('//span[contains(@class, "a-price-fraction")]/text()').get() \
-            else "00"
+        if jsonDom.get("fraction_xpath"):
+            price_fraction = response.xpath(jsonDom.get("fraction_xpath")).get()
+            full_price = f"{price_whole}.{price_fraction.strip()}"
+        else:
+            value = re.sub(r'[^\d,]', '', price_whole)
+            full_price = f"{value}"
 
-        full_price = f"${price_whole}.{price_fraction}"
-
-        discount_percentage = response.xpath('//span[contains(@class, "a-size-large") and contains(@class, "savingsPercentage")]/text()').get()
+        discount_percentage = response.xpath(jsonDom.get("discount_percentage")).get()
         if discount_percentage:
-            discount_percentage = discount_percentage.strip()
+            if "%" in discount_percentage:
+                discount_percentage = discount_percentage.strip()
+            else:
+                discount_re = re.sub(r'[^\d,]', '', discount_percentage).replace(",", ".")
+                price_re = re.sub(r'[^\d,]', '', price_whole).replace(",", ".")
+                discount_percentage = f"-{ceil(((float(discount_re) / float(price_re)) - 1) * 100)}%"
 
         data = {
             # "Domain": domain if domain else "Não identificado o domínio",
             "ASIN": asin,
             "Title": title if title else "Título não encontrado",
-            "Price to pay (USD)": full_price if full_price else "Preço não encontrado",
-            "Discount Percentage": discount_percentage if discount_percentage else "Sem desconto"
+            "Price to pay": full_price.replace(",", ".") if full_price else "Preço não encontrado",
+            "Discount Percentage": discount_percentage if discount_percentage else "Sem desconto",
+            "Domain": domain.upper(),
+            "Currency": currency,
         }
+
 
         output_file = "output.json"
 
