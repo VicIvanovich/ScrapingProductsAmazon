@@ -3,4 +3,3 @@ python-dotenv
 selenium
 webdriver-manager
 azure-storage-blob
-logging

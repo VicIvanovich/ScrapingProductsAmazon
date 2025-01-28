@@ -1,5 +1,5 @@
 from azure.storage.blob import BlobClient
-from os import getenv
+from os import getenv,remove
 from dotenv import load_dotenv
 import logging
 from datetime import date
@@ -27,6 +27,7 @@ def upload_file_to_blob(local_file_path):
 
         logging.info(
             f"Arquivo '{local_file_path}' enviado com sucesso para o blob '{blob_name}' no container '{container_name}'.")
+
 
     except Exception as e:
         logging.error(f"Erro ao fazer upload do arquivo: {e}")
