@@ -24,8 +24,9 @@ class AmazonSpider(scrapy.Spider):
     start_urls = [
 
         # Inserir URLs para realizar a consulta!!
-
-        "https://a.co/d/d1U0Gpf"
+        "https://www.amazon.com/dp/B0B8N6GH2J/",
+        "https://a.co/d/d1U0Gpf",
+        
 
     ]
 
@@ -34,8 +35,10 @@ class AmazonSpider(scrapy.Spider):
 
         options = Options()
         options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
 
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=options)
 
     def parse(self, response):
 
@@ -44,8 +47,6 @@ class AmazonSpider(scrapy.Spider):
         time.sleep(3)
 
         rendered_html = self.driver.page_source
-
-        self.driver.quit()
 
         response = HtmlResponse(url=response.url, body=rendered_html, encoding='utf-8')
 
