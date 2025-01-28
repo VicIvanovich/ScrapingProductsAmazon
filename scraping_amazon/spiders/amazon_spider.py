@@ -1,6 +1,3 @@
-
-import scrapy
-from scrapy.crawler import CrawlerProcess
 import json
 import os
 from selenium import webdriver
@@ -9,6 +6,7 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 from scrapy.http import HtmlResponse
+import scrapy
 from selenium.webdriver.chrome.options import Options
 
 # Desenvolvido por Victor Ivanovich Bormotoff
@@ -107,8 +105,3 @@ class AmazonSpider(scrapy.Spider):
         self.log(f"Data saved: {data}")
 
         yield data
-
-
-process = CrawlerProcess()
-process.crawl(AmazonSpider)
-process.start()
