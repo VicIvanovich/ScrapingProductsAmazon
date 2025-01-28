@@ -24,7 +24,7 @@ class AmazonSpider(scrapy.Spider):
 
         # Inserir URLs para realizar a consulta!!
 
-        "https://a.co/d/1f9kRgA"
+        "https://a.co/d/8VWd5R1"
 
     ]
 
