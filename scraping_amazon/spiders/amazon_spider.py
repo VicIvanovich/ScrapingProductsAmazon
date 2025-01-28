@@ -8,12 +8,15 @@ import time
 from scrapy.http import HtmlResponse
 import scrapy
 from selenium.webdriver.chrome.options import Options
+from scraping_amazon.blob_utils import upload_file_to_blob
+from scrapy.crawler import CrawlerProcess
 
 # Desenvolvido por Victor Ivanovich Bormotoff
 
 # Projeto para realização de consultas de preço no site da amazon
 
 # Disclaimer: É necessário que tenha instalado o Google Chrome no sistema para conseguir rodar o Selenium!
+
 
 class AmazonSpider(scrapy.Spider):
     name = "amazon"
@@ -22,7 +25,7 @@ class AmazonSpider(scrapy.Spider):
 
         # Inserir URLs para realizar a consulta!!
 
-        "https://a.co/d/8VWd5R1"
+        "https://a.co/d/d1U0Gpf"
 
     ]
 
@@ -104,4 +107,12 @@ class AmazonSpider(scrapy.Spider):
 
         self.log(f"Data saved: {data}")
 
+        upload_file_to_blob(output_file)
+
         yield data
+
+
+def run_spider():
+    process = CrawlerProcess()
+    process.crawl(AmazonSpider)
+    process.start()
