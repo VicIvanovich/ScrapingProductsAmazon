@@ -10,23 +10,34 @@ import scrapy
 from selenium.webdriver.chrome.options import Options
 from scraping_amazon.blob_utils import upload_file_to_blob
 from scrapy.crawler import CrawlerProcess
+from urllib.parse import urlparse
 
-# Desenvolvido por Victor Ivanovich Bormotoff
+# Desenvolvido por Victor Ivanovich Bormotoff e Pedro Henrique Teixeira
 
 # Projeto para realização de consultas de preço no site da amazon
 
 # Disclaimer: É necessário que tenha instalado o Google Chrome no sistema para conseguir rodar o Selenium!
 
 
+def get_domain(url):
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc
+    if domain.startswith('www.'):
+        domain = domain[4:]
+
+    domain = domain.split('.')[0]
+
+    return domain
+
+
 class AmazonSpider(scrapy.Spider):
     name = "amazon"
-    allowed_domains = ["amazon.com"]
+    allowed_domains = ["amazon.com", "mercadolivre.com.br", "kabum.com.br"]
     start_urls = [
 
         # Inserir URLs para realizar a consulta!!
-        "https://www.amazon.com/dp/B0B8N6GH2J/",
-        "https://a.co/d/d1U0Gpf",
-        
+
+        "https://produto.mercadolivre.com.br/MLB-3451724732-coleco-completa-25-cards-comuns-pokemon-mc-donalds-2021-_JM"
 
     ]
 
@@ -38,7 +49,7 @@ class AmazonSpider(scrapy.Spider):
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
 
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=options)
+        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     def parse(self, response):
 
@@ -49,6 +60,10 @@ class AmazonSpider(scrapy.Spider):
         rendered_html = self.driver.page_source
 
         response = HtmlResponse(url=response.url, body=rendered_html, encoding='utf-8')
+
+        domain = get_domain(response.url)
+
+        print(domain)
 
         asin = response.url.split("/dp/")[1].split("?")[0].split("/")[0]
 
@@ -71,6 +86,7 @@ class AmazonSpider(scrapy.Spider):
             discount_percentage = discount_percentage.strip()
 
         data = {
+            # "Domain": domain if domain else "Não identificado o domínio",
             "ASIN": asin,
             "Title": title if title else "Título não encontrado",
             "Price to pay (USD)": full_price if full_price else "Preço não encontrado",
@@ -100,7 +116,7 @@ class AmazonSpider(scrapy.Spider):
                     json.dump(file_data, f, ensure_ascii=False, indent=4)
                 else:
                     self.log(f"Produto duplicado encontrado (ASIN {data['ASIN']}): {data['Title']}")
-                    return
+                    return None
         else:
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump([data], f, ensure_ascii=False, indent=4)
