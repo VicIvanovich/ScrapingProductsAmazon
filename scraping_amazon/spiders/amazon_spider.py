@@ -11,7 +11,7 @@ from selenium.webdriver.chrome.options import Options
 from scraping_amazon.blob_utils import upload_file_to_blob
 from scrapy.crawler import CrawlerProcess
 from urllib.parse import urlparse
-from ..payload import GetDomain
+from scraping_amazon.payload import GetDomain
 import re
 from math import ceil
 # Desenvolvido por Victor Ivanovich Bormotoff e Pedro Henrique Teixeira
@@ -36,12 +36,12 @@ def get_domain(url):
 
 class AmazonSpider(scrapy.Spider):
     name = "amazon"
-    allowed_domains = ["amazon.com","amazon.com.br", "mercadolivre.com", "kabum.com.br"]
+    allowed_domains = ["amazon.com","amazon.com.br", "mercadolivre.com", "kabum.com.br","magazineluiza.com.br","www.mercadolivre.com.br"]
     start_urls = [
 
         # Inserir URLs para realizar a consulta!!
 
-        "https://www.kabum.com.br/produto/385191/console-nintendo-switch-joy-con-neon-mario-kart-8-deluxe-3-meses-de-assinatura-nintendo-switch-online-azul-e-vermelho-hbdskabl2?awc=17729_1737135620_6fbeefe3ace3c0c9e0fda1b4f4fb4062&sn=1&utm_source=AWIN&utm_medium=AFILIADOS&utm_campaign=fevereiro24&utm_content=i8mHpW6AWECTVWXKusSESg:0001010111111111001110&utm_term=402367"
+        "https://www.magazineluiza.com.br/travessa-de-vidro-borosilicato-quadrada-15-l-oxford/p/jea64546eb/ud/trav/"
 
     ]
 
@@ -59,7 +59,7 @@ class AmazonSpider(scrapy.Spider):
 
         self.driver.get(response.url)
 
-        time.sleep(3)
+        self.driver.implicitly_wait(5)
 
         rendered_html = self.driver.page_source
 

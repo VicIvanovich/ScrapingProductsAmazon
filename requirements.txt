@@ -5,3 +5,4 @@ webdriver-manager
 azure-storage-blob
 fake-useragent
 scrapy-rotating-proxies
+BeautifulSoup

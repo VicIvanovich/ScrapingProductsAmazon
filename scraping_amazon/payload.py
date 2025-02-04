@@ -16,9 +16,9 @@ def GetDomain(domain):
                 "asin_xpath": "/produto/"
             },
             "magazineluiza": {
-                "price_xpath": "//p[@data-testid='price-value']/text()",
-                "title_xpath": "//h1[@data-testid='heading-product-title']/text()",
-                "discount_percentage": "//p[contains(@data-testid, 'price-original')]/text()",
+                "price_xpath": "//*[@id='__next']//section[7]//div[6]//p/text()",
+                "title_xpath": "//*[@id='__next']//section[5]//h1/text()",
+                "discount_percentage": "//*[@id='product']//section//div[5]//p[1]/text()",
                 "asin_xpath": "/p/"
             }
 
