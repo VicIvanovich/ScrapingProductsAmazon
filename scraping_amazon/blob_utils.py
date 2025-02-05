@@ -27,6 +27,10 @@ def upload_file_to_blob(local_file_path):
 
         logging.info(
             f"Arquivo '{local_file_path}' enviado com sucesso para o blob '{blob_name}' no container '{container_name}'.")
+        
+        remove(local_file_path)
+        logging.info(
+            f"Arquivo '{local_file_path}' Removido .")
 
 
     except Exception as e:

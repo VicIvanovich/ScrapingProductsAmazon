@@ -101,3 +101,12 @@ class ScrapingAmazonDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+from scrapy.http import Request
+
+class RedirectMiddleware:
+    def process_response(self, request, response, spider):
+        if response.status in (302,403) or "az-request-verify" in response.headers.get("Location", b"").decode():
+            spider.logger.info(f"Redirecionado para verificação: {response.url}")
+            return Request(request.url, headers=request.headers, cookies=request.cookies, dont_filter=True)
+        return response

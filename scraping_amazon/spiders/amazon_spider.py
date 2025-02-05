@@ -1,8 +1,5 @@
-import json
-import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 from scrapy.http import HtmlResponse
@@ -10,40 +7,24 @@ import scrapy
 from selenium.webdriver.chrome.options import Options
 from scraping_amazon.blob_utils import upload_file_to_blob
 from scrapy.crawler import CrawlerProcess
-from urllib.parse import urlparse
-from scraping_amazon.payload import GetDomain
+from scraping_amazon.payload import GetXpath,selectUrls
 import re
 from math import ceil
+from scrapy.utils.project import get_project_settings
+from scraping_amazon.another_spider import run_py
+from scraping_amazon.reqsim import run_req
+from scraping_amazon.utils import get_domain,save_data
 # Desenvolvido por Victor Ivanovich Bormotoff e Pedro Henrique Teixeira
 
 # Projeto para realização de consultas de preço no site da amazon
 
 # Disclaimer: É necessário que tenha instalado o Google Chrome no sistema para conseguir rodar o Selenium!
-
-
-def get_domain(url):
-    parsed_url = urlparse(url)
-    domain = parsed_url.netloc
-    if domain.startswith('www.'):
-        domain = domain[4:]
-    
-    currency = "BRL" if '.br' in domain.lower() else "USD"
-    domain = domain.split('.')[0]
-    
-
-    return domain,currency
-
+output_file = "output.json"
 
 class AmazonSpider(scrapy.Spider):
     name = "amazon"
-    allowed_domains = ["amazon.com","amazon.com.br", "mercadolivre.com", "kabum.com.br","magazineluiza.com.br","www.mercadolivre.com.br"]
-    start_urls = [
-
-        # Inserir URLs para realizar a consulta!!
-
-        "https://www.magazineluiza.com.br/travessa-de-vidro-borosilicato-quadrada-15-l-oxford/p/jea64546eb/ud/trav/"
-
-    ]
+    allowed_domains = ["amazon.com","amazon.com.br", "mercadolivre.com", "kabum.com.br","www.mercadolivre.com.br"]
+    start_urls = selectUrls("AmazonSpider")
 
     def __init__(self, *args, **kwargs):
         super(AmazonSpider, self).__init__(*args, **kwargs)
@@ -52,25 +33,23 @@ class AmazonSpider(scrapy.Spider):
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
+        options.add_argument("--disable-blink-features=AutomationControlled")
 
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     def parse(self, response):
-
+        
         self.driver.get(response.url)
 
-        self.driver.implicitly_wait(5)
-
+        time.sleep(5)
+            
         rendered_html = self.driver.page_source
 
         response = HtmlResponse(url=response.url, body=rendered_html, encoding='utf-8')
 
         domain,currency = get_domain(response.url)
-
-        jsonDom = GetDomain(domain)
-
-        #print(jsonDom)
-
+        
+        jsonDom = GetXpath(domain)
 
         asin = response.url.split(jsonDom["asin_xpath"])[1].split("?")[0].split("/")[0]
 
@@ -82,70 +61,48 @@ class AmazonSpider(scrapy.Spider):
             if response.xpath(jsonDom["price_xpath"]).get() \
             else "Preço não encontrado"
 
+        value = re.sub(r'[^\d,]', '', price_whole)
+
         if jsonDom.get("fraction_xpath"):
             price_fraction = response.xpath(jsonDom.get("fraction_xpath")).get()
-            full_price = f"{price_whole}.{price_fraction.strip()}"
+            full_price = f"{value}.{price_fraction.strip()}"
         else:
-            value = re.sub(r'[^\d,]', '', price_whole)
             full_price = f"{value}"
 
         discount_percentage = response.xpath(jsonDom.get("discount_percentage")).get()
+
         if discount_percentage:
             if "%" in discount_percentage:
-                discount_percentage = discount_percentage.strip()
+                discount_percentage = discount_percentage.replace("OFF","").strip()
             else:
                 discount_re = re.sub(r'[^\d,]', '', discount_percentage).replace(",", ".")
-                price_re = re.sub(r'[^\d,]', '', price_whole).replace(",", ".")
+                price_re = re.sub(r'[^\d,]', '', price_whole)
                 discount_percentage = f"-{ceil(((float(discount_re) / float(price_re)) - 1) * 100)}%"
 
         data = {
-            # "Domain": domain if domain else "Não identificado o domínio",
+
             "ASIN": asin,
             "Title": title if title else "Título não encontrado",
             "Price to pay": full_price.replace(",", ".") if full_price else "Preço não encontrado",
             "Discount Percentage": discount_percentage if discount_percentage else "Sem desconto",
-            "Domain": domain.upper(),
+            "Domain": domain.upper() if domain else "Não identificado o domínio",
             "Currency": currency,
         }
 
+        
 
-        output_file = "output.json"
-
-        if os.path.exists(output_file):
-            with open(output_file, "r+", encoding="utf-8") as f:
-                file_contents = f.read().strip()
-
-                if not file_contents:
-                    self.log("Arquivo JSON vazio. Inicializando como uma lista vazia")
-                    file_data = []
-                else:
-                    try:
-                        file_data = json.loads(file_contents)
-                    except json.JSONDecodeError as e:
-                        self.log(f"Erro ao decodificar JSON: {e}. Corrigindo arquivo...")
-                        file_data = []
-                        f.truncate(0)
-                if not any(item['ASIN'] == data['ASIN'] for item in file_data):
-                    file_data.append(data)
-
-                    f.seek(0)
-                    json.dump(file_data, f, ensure_ascii=False, indent=4)
-                else:
-                    self.log(f"Produto duplicado encontrado (ASIN {data['ASIN']}): {data['Title']}")
-                    return None
-        else:
-            with open(output_file, "w", encoding="utf-8") as f:
-                json.dump([data], f, ensure_ascii=False, indent=4)
-                self.log(f"Gerando arquivo JSON!")
-
+        save_data(data,output_file)
         self.log(f"Data saved: {data}")
 
-        upload_file_to_blob(output_file)
+        #upload_file_to_blob(output_file)
 
         yield data
-
-
+        
 def run_spider():
-    process = CrawlerProcess()
+    settings = get_project_settings().copy()  # Converte Settings para dict
+    process = CrawlerProcess(settings)
     process.crawl(AmazonSpider)
     process.start()
+    run_py(selectUrls("AnotherSpider"))
+    run_req(selectUrls("reqsim"))
+    upload_file_to_blob(output_file)
