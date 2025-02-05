@@ -9,40 +9,47 @@
 
 from fake_useragent import UserAgent
 
-BOT_NAME = "scraping_amazon"
+BOT_NAME = ["acesso_amazon"]
 
 SPIDER_MODULES = ["scraping_amazon.spiders"]
-NEWSPIDER_MODULE = "scraping_amazon.spiders"
+NEWSPIDER_MODULE = ["scraping_amazon.spiders"]
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-USER_AGENT = UserAgent()
+#USER_AGENT = UserAgent().random
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
 
+LOG_INFO = "INFO"
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 CONCURRENT_REQUESTS = 1
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 3
+DOWNLOAD_DELAY = 5
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable cookies (enabled by default)
-#COOKIES_ENABLED = False
+#COOKIES_ENABLED = True
 
 # Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False
 
 # Override the default request headers:
-#DEFAULT_REQUEST_HEADERS = {
-#    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-#    "Accept-Language": "en",
-#}
+DEFAULT_REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/537.36",
+    "Accept-Language": "pt-BR,pt;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Referer": "https://www.google.com/",
+    "DNT": "1",  # Indica que o usuário não deseja ser rastreado
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1"
+}
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
@@ -55,19 +62,16 @@ DOWNLOAD_DELAY = 3
 #DOWNLOADER_MIDDLEWARES = {
 #    "scraping_amazon.middlewares.ScrapingAmazonDownloaderMiddleware": 543,
 #}
-
 DOWNLOADER_MIDDLEWARES = {
     'scrapy_user_agents.middlewares.RandomUserAgentMiddleware': 400,
     'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
     'rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
     'rotating_proxies.middlewares.BanDetectionMiddleware': 620,
+    'scraping_amazon.middlewares.RedirectMiddleware': 543
 }
-
-ROTATING_PROXY_LIST = [
-    "http://username:password@proxy1.com:8000",
-    "http://username:password@proxy2.com:8031",
-]
-
+DOWNLOADER_MIDDLEWARES = {
+    
+}
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
 #EXTENSIONS = {
@@ -98,7 +102,7 @@ AUTOTHROTTLE_MAX_DELAY = 60
 #HTTPCACHE_ENABLED = True
 #HTTPCACHE_EXPIRATION_SECS = 0
 #HTTPCACHE_DIR = "httpcache"
-#HTTPCACHE_IGNORE_HTTP_CODES = []
+HTTPERROR_ALLOWED_CODES = [403]
 #HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
 
 # Set settings whose default value is deprecated to a future-proof value
