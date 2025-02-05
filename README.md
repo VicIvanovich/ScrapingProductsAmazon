@@ -117,6 +117,7 @@ AUTOTHROTTLE_MAX_DELAY = 60
 |-- scraping_amazon/
 |   |-- spider  # Scrapy Spider
 |   |   |-- amazon_spider.py  # Scrapy Spider
+|   |-- main.py  # Função principal
 |   |-- reqsim.py  # Scraping via requests
 |   |-- another_spider.py  # Scraping via Selenium
 |   |-- payload.py  # Configurações e XPaths
